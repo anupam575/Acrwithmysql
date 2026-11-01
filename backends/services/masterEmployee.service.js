@@ -20,7 +20,8 @@ export const createMasterEmployee = async p => {
  if (existing) {
    return prisma.$transaction(async tx=>{await tx.masteremployee_authorities.deleteMany({where:{employee_id:existing.id}});await tx.masteremployee_designations.deleteMany({where:{employee_id:existing.id}});return tx.masteremployees.update({where:{id:existing.id},data:{...payload,...buildChildren(p.authorities,p.designations)}});});
  }
- return prisma.masteremployees.create({data:{id:newId(),createdAt:new Date(),...payload,...buildChildren(p.authorities,p.designations)}});
+ // FIX: naya employee hamesha active ban kar create hoga
+ return prisma.masteremployees.create({data:{id:newId(),createdAt:new Date(),isActive:true,...payload,...buildChildren(p.authorities,p.designations)}});
 };
 export const updateMasterEmployee = async p => {
  const existing=await prisma.masteremployees.findFirst({where:{employeeRefId:String(p.employeeRefId)},include:{masteremployee_authorities:true}});
