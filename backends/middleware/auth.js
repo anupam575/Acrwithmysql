@@ -19,7 +19,10 @@ export const isAuthenticatedUser = async (req, res, next) => {
       user = await prisma.users.findUnique({ where: { id: decoded.id } });
       if (!user) return res.status(401).json({ success: false, message: 'User not found' });
     }
-    if (!user.isActive) return res.status(403).json({ success: false, message: 'Account is deactivated' });
+
+    // FIX: NULL isActive ko deactivated nahi maanna, sirf explicit false block hoga
+    if (user.isActive === false) return res.status(403).json({ success: false, message: 'Account is deactivated' });
+
     const role = user.role_id ? await prisma.roles.findUnique({ where: { id: user.role_id } }) : null;
     req.user = { ...user, _id: user.id, role: role ? { ...role, _id: role.id } : null };
     req.employeeRefId = decoded.employeeRefId || null;
