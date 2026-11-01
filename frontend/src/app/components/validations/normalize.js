@@ -2,9 +2,10 @@ import { formatDate, getId } from "../../../utils/format";
 
 const safeArray = (arr) => Array.isArray(arr) ? arr : [];
 
-const BASE_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, "") ||
-  "https://acrapi.disgenservices.in";
+// Backend base URL — hardcoded directly, NO env variable.
+// Deployment ke waqt yahin pe manually badalna hoga (e.g. prod
+// backend domain).
+const BASE_URL = "http://localhost:4000";
 
 const mapFile = (file) => {
   if (!file) return null;

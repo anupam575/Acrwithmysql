@@ -1,0 +1,613 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model acceptancesections {
+  id                                String    @id @map("_id") @db.VarChar(255)
+  employeeId                        String?   @db.VarChar(255)
+  reviewingOfficerId                String?   @db.VarChar(255)
+  acceptingAuthorityNameDesignation String?   @db.VarChar(500)
+  agreedWithRemarks                 String?   @db.LongText
+  currentFinancialYear              String?   @db.VarChar(50)
+  differenceOpinion                 String?   @db.LongText
+  overallGrade                      Decimal?  @db.Decimal(18, 4)
+  overallGradeConsistent            String?   @db.VarChar(255)
+  officerSignature_url              String?   @db.Text
+  officerSignature_size             BigInt?
+  officerSignature_mimeType         String?   @db.VarChar(255)
+  officerSignature_public_id        String?   @db.Text
+  officerSignature_originalName     String?   @db.VarChar(500)
+  createdAt                         DateTime?
+  updatedAt                         DateTime?
+  v                                 Int?      @map("__v")
+}
+
+model acceptingauthorities {
+  id                            String    @id @map("_id") @db.VarChar(255)
+  acceptingAssessment           String?   @db.Text
+  acceptingAuthorityId          String?   @db.VarChar(255)
+  acceptingDate                 DateTime?
+  acceptingDesignation          String?   @db.VarChar(255)
+  acceptingName                 String?   @db.VarChar(255)
+  acceptingPlace                String?   @db.VarChar(255)
+  acceptingRemarks              String?   @db.Text
+  acceptingTotalScore           Decimal?  @db.Decimal(15, 4)
+  currentFinancialYear          String?   @db.VarChar(30)
+  employeeId                    String?   @db.VarChar(255)
+  officerSignature_url          String?   @db.Text
+  officerSignature_size         BigInt?
+  officerSignature_mimeType     String?   @db.VarChar(150)
+  officerSignature_public_id    String?   @db.VarChar(255)
+  officerSignature_originalName String?   @db.VarChar(255)
+  createdAt                     DateTime?
+  updatedAt                     DateTime?
+}
+
+model apar_competencies {
+  id                 Int      @id @default(autoincrement())
+  apar_id            String   @db.VarChar(255)
+  mongo_record_id    String?  @db.VarChar(255)
+  competency_index   Int?
+  slNo               String?  @db.VarChar(50)
+  initials           String?  @db.VarChar(255)
+  competency         String?  @db.Text
+  reportingAuthority Decimal? @db.Decimal(18, 4)
+  source_item        Json?
+  apars              apars    @relation(fields: [apar_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "apar_competencies_ibfk_1")
+
+  @@index([apar_id], map: "apar_id")
+}
+
+model apar_tasks {
+  id                Int      @id @default(autoincrement())
+  apar_id           String   @db.VarChar(255)
+  mongo_record_id   String?  @db.VarChar(255)
+  task_index        Int?
+  initials          String?  @db.VarChar(255)
+  taskName          String?  @db.Text
+  weightage         Decimal? @db.Decimal(18, 4)
+  reportingAbsolute Decimal? @db.Decimal(18, 4)
+  reportingWeighted Decimal? @db.Decimal(18, 4)
+  apars             apars    @relation(fields: [apar_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "apar_tasks_ibfk_1")
+
+  @@index([apar_id], map: "apar_id")
+}
+
+model apars {
+  id                            String              @id @map("_id") @db.VarChar(255)
+  employeeId                    String?             @db.VarChar(255)
+  reportingOfficerId            String?             @db.VarChar(255)
+  designation                   String?             @db.VarChar(255)
+  financialYear                 String?             @db.VarChar(50)
+  section1                      String?             @db.LongText
+  section2                      String?             @db.LongText
+  section3                      String?             @db.LongText
+  section4                      String?             @db.LongText
+  section5                      String?             @db.LongText
+  integrity_doubtful            Boolean?
+  integrity_beyondDoubt         Boolean?
+  integrity_nothingAdverse      Boolean?
+  overallGrade                  Decimal?            @db.Decimal(18, 4)
+  reportingDate                 DateTime?
+  officerSignature_url          String?             @db.Text
+  officerSignature_size         BigInt?
+  officerSignature_mimeType     String?             @db.VarChar(255)
+  officerSignature_public_id    String?             @db.Text
+  officerSignature_originalName String?             @db.VarChar(500)
+  penPicture                    String?             @db.LongText
+  mou_initials                  String?             @db.VarChar(255)
+  mou_weightage                 Decimal?            @db.Decimal(18, 4)
+  mou_reportingAbsolute         Decimal?            @db.Decimal(18, 4)
+  mou_reportingWeighted         Decimal?            @db.Decimal(18, 4)
+  grandWeightage                Decimal?            @db.Decimal(18, 4)
+  totalWeightage                Decimal?            @db.Decimal(18, 4)
+  grandReportingAbsolute        Decimal?            @db.Decimal(18, 4)
+  grandReportingWeighted        Decimal?            @db.Decimal(18, 4)
+  totalReportingAbsolute        Decimal?            @db.Decimal(18, 4)
+  totalReportingWeighted        Decimal?            @db.Decimal(18, 4)
+  summary_total                 Decimal?            @db.Decimal(18, 4)
+  summary_overall               String?             @db.VarChar(255)
+  createdAt                     DateTime?
+  updatedAt                     DateTime?
+  v                             Int?                @map("__v")
+  section6_source               Json?
+  section7_source               Json?
+  summary_source                Json?
+  source_document               Json?
+  apar_competencies             apar_competencies[]
+  apar_tasks                    apar_tasks[]
+}
+
+model categories {
+  id           String    @id @map("_id") @db.VarChar(255)
+  category_key String?   @db.VarChar(100)
+  name         String?   @db.VarChar(255)
+  createdAt    DateTime?
+  updatedAt    DateTime?
+  v            Int?      @map("__v")
+}
+
+model departments {
+  id              String    @id @map("_id") @db.VarChar(255)
+  department_name String?   @db.VarChar(255)
+  createdAt       DateTime?
+  updatedAt       DateTime?
+  v               Int?      @map("__v")
+}
+
+model designations {
+  id        String    @id @map("_id") @db.VarChar(255)
+  name      String?   @db.VarChar(255)
+  createdAt DateTime?
+  updatedAt DateTime?
+  v         Int?      @map("__v")
+}
+
+model employeedetail_absences {
+  id              Int             @id @default(autoincrement())
+  employee_id     String          @db.VarChar(255)
+  mongo_record_id String?         @db.VarChar(255)
+  from_date       DateTime?
+  to_date         DateTime?
+  remarks         String?         @db.Text
+  specify         String?         @db.VarChar(500)
+  category        String?         @db.VarChar(255)
+  leaveType       String?         @db.VarChar(255)
+  employeedetails employeedetails @relation(fields: [employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "employeedetail_absences_ibfk_1")
+
+  @@index([employee_id], map: "employee_id")
+}
+
+model employeedetail_authorities {
+  id                  Int             @id @default(autoincrement())
+  employee_id         String          @db.VarChar(255)
+  authority_type      String?         @db.VarChar(100)
+  authority_index     Int?
+  authority_record_id String?         @db.VarChar(255)
+  authority_name_id   String?         @db.VarChar(255)
+  designation_id      String?         @db.VarChar(255)
+  from_date           DateTime?
+  to_date             DateTime?
+  employeedetails     employeedetails @relation(fields: [employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "employeedetail_authorities_ibfk_1")
+
+  @@index([employee_id], map: "employee_id")
+}
+
+model employeedetail_awards {
+  id              Int             @id @default(autoincrement())
+  employee_id     String          @db.VarChar(255)
+  mongo_record_id String?         @db.VarChar(255)
+  award_year      Int?
+  title           String?         @db.VarChar(500)
+  description     String?         @db.Text
+  employeedetails employeedetails @relation(fields: [employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "employeedetail_awards_ibfk_1")
+
+  @@index([employee_id], map: "employee_id")
+}
+
+model employeedetail_designations {
+  id              Int             @id @default(autoincrement())
+  employee_id     String          @db.VarChar(255)
+  designation_id  String?         @db.VarChar(255)
+  employeedetails employeedetails @relation(fields: [employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "employeedetail_designations_ibfk_1")
+
+  @@index([employee_id], map: "employee_id")
+}
+
+model employeedetail_training {
+  id              Int             @id @default(autoincrement())
+  employee_id     String          @db.VarChar(255)
+  mongo_record_id String?         @db.VarChar(255)
+  from_date       DateTime?
+  to_date         DateTime?
+  subject         String?         @db.VarChar(500)
+  institute       String?         @db.VarChar(500)
+  employeedetails employeedetails @relation(fields: [employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "employeedetail_training_ibfk_1")
+
+  @@index([employee_id], map: "employee_id")
+}
+
+model employeedetails {
+  id                                 String                        @id @map("_id") @db.VarChar(255)
+  role_id                            String?                       @db.VarChar(255)
+  category_id                        String?                       @db.VarChar(255)
+  createdBy_id                       String?                       @db.VarChar(255)
+  employeeCode                       String?                       @db.VarChar(100)
+  EmployeeName                       String?                       @db.VarChar(255)
+  email                              String?                       @db.VarChar(255)
+  password                           String?                       @db.VarChar(255)
+  phoneNumber                        String?                       @db.VarChar(30)
+  dateOfBirth                        DateTime?
+  academicProfessionalQualifications String?                       @db.Text
+  currentPost_name                   String?                       @db.VarChar(255)
+  currentPost_grade                  String?                       @db.VarChar(255)
+  currentPost_payScale               String?                       @db.VarChar(255)
+  nsfdcAppointmentDate               DateTime?
+  firstAppointmentDate               DateTime?
+  firstAppointmentPayScale           String?                       @db.VarChar(255)
+  propertyReturnDate                 DateTime?
+  propertyReturnYear                 Int?
+  officersNotReportedPAR             BigInt?
+  officerSignature_url               String?                       @db.Text
+  officerSignature_size              BigInt?
+  officerSignature_mimeType          String?                       @db.VarChar(255)
+  officerSignature_public_id         String?                       @db.Text
+  officerSignature_originalName      String?                       @db.VarChar(500)
+  recentPhotograph_url               String?                       @db.Text
+  recentPhotograph_size              BigInt?
+  recentPhotograph_mimeType          String?                       @db.VarChar(255)
+  recentPhotograph_public_id         String?                       @db.Text
+  recentPhotograph_originalName      String?                       @db.VarChar(500)
+  createdAt                          DateTime?
+  updatedAt                          DateTime?
+  v                                  Int?                          @map("__v")
+  employeedetail_absences            employeedetail_absences[]
+  employeedetail_authorities         employeedetail_authorities[]
+  employeedetail_awards              employeedetail_awards[]
+  employeedetail_designations        employeedetail_designations[]
+  employeedetail_training            employeedetail_training[]
+}
+
+model employeenews {
+  id                                         String    @id @map("_id") @db.VarChar(255)
+  employee_name                              String?   @db.VarChar(255)
+  employeeCode                               String?   @db.VarChar(100)
+  email                                      String?   @db.VarChar(255)
+  password                                   String?   @db.VarChar(255)
+  phoneNumber                                String?   @db.VarChar(50)
+  profilePic                                 String?   @db.Text
+  category_id                                String?   @db.VarChar(255)
+  role_id                                    String?   @db.VarChar(255)
+  createdBy_id                               String?   @db.VarChar(255)
+  updatedBy_id                               String?   @db.VarChar(255)
+  basic_pay                                  Decimal?  @db.Decimal(15, 2)
+  pay_scale                                  String?   @db.VarChar(255)
+  date_of_birth                              DateTime?
+  date_of_appointment                        DateTime?
+  date_of_joining                            DateTime?
+  authorities_json                           Json?
+  basicLeaves_json                           Json?
+  basicTrainings_json                        Json?
+  designations_json                          Json?
+  educationalProfessionalQualifications_json Json?
+  createdAt                                  DateTime?
+  updatedAt                                  DateTime?
+}
+
+model masteremployee_authorities {
+  id                  Int             @id @default(autoincrement())
+  employee_id         String          @db.VarChar(255)
+  authority_type      String          @db.VarChar(100)
+  authority_index     Int
+  authority_record_id String?         @db.VarChar(255)
+  authority_name_id   String?         @db.VarChar(255)
+  designation_id      String?         @db.VarChar(255)
+  from_date           DateTime?
+  to_date             DateTime?
+  masteremployees     masteremployees @relation(fields: [employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "masteremployee_authorities_ibfk_1")
+
+  @@index([employee_id], map: "employee_id")
+}
+
+model masteremployee_designations {
+  id              Int             @id @default(autoincrement())
+  employee_id     String          @db.VarChar(255)
+  designation_id  String          @db.VarChar(255)
+  masteremployees masteremployees @relation(fields: [employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "masteremployee_designations_ibfk_1")
+
+  @@index([employee_id], map: "employee_id")
+}
+
+model masteremployees {
+  id                          String                        @id @map("_id") @db.VarChar(255)
+  role_id                     String?                       @db.VarChar(255)
+  email                       String?                       @db.VarChar(255)
+  category_id                 String?                       @db.VarChar(255)
+  isActive                    Boolean?
+  password                    String?                       @db.VarChar(255)
+  createdAt                   DateTime?
+  updatedAt                   DateTime?
+  phoneNumber                 String?                       @db.VarChar(30)
+  sourceModel                 String?                       @db.VarChar(100)
+  employeeCode                String?                       @db.VarChar(100)
+  employeeRefId               String?                       @db.VarChar(255)
+  v                           Int?                          @map("__v")
+  masteremployee_authorities  masteremployee_authorities[]
+  masteremployee_designations masteremployee_designations[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model original_acceptancesections {
+  id            String @id @map("_id") @db.VarChar(255)
+  document_json String @db.LongText
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model original_acceptingauthorities {
+  id            String @id @map("_id") @db.VarChar(255)
+  document_json String @db.LongText
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model original_apars {
+  id            String @id @map("_id") @db.VarChar(255)
+  document_json String @db.LongText
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model original_categories {
+  id            String @id @map("_id") @db.VarChar(255)
+  document_json String @db.LongText
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model original_departments {
+  id            String @id @map("_id") @db.VarChar(255)
+  document_json String @db.LongText
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model original_designations {
+  id            String @id @map("_id") @db.VarChar(255)
+  document_json String @db.LongText
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model original_employeedetails {
+  id            String @id @map("_id") @db.VarChar(255)
+  document_json String @db.LongText
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model original_employeenews {
+  id            String @id @map("_id") @db.VarChar(255)
+  document_json String @db.LongText
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model original_masteremployees {
+  id            String @id @map("_id") @db.VarChar(255)
+  document_json String @db.LongText
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model original_performancereviews {
+  id            String @id @map("_id") @db.VarChar(255)
+  document_json String @db.LongText
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model original_reviewingofficers {
+  id            String @id @map("_id") @db.VarChar(255)
+  document_json String @db.LongText
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model original_roles {
+  id            String @id @map("_id") @db.VarChar(255)
+  document_json String @db.LongText
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model original_sectionivs {
+  id            String @id @map("_id") @db.VarChar(255)
+  document_json String @db.LongText
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model original_selfappraisals {
+  id            String @id @map("_id") @db.VarChar(255)
+  document_json String @db.LongText
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model original_supervisors {
+  id            String @id @map("_id") @db.VarChar(255)
+  document_json String @db.LongText
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model original_users {
+  id            String @id @map("_id") @db.VarChar(255)
+  document_json String @db.LongText
+}
+
+model performancereview_careerdevelopment {
+  id            Int     @id @default(autoincrement())
+  review_id     String  @db.VarChar(255)
+  item_order    Int
+  career_option String? @db.VarChar(500)
+
+  @@unique([review_id, item_order], map: "uq_review_career")
+}
+
+model performancereview_factors {
+  id               Int      @id @default(autoincrement())
+  review_id        String   @db.VarChar(255)
+  item_order       Int
+  label            String?  @db.VarChar(500)
+  weightage        Decimal? @db.Decimal(12, 4)
+  reportingOfficer Decimal? @db.Decimal(12, 4)
+
+  @@unique([review_id, item_order], map: "uq_review_factor")
+}
+
+model performancereview_otheraspects {
+  id               Int      @id @default(autoincrement())
+  review_id        String   @db.VarChar(255)
+  item_order       Int
+  label            String?  @db.VarChar(500)
+  weightage        Decimal? @db.Decimal(12, 4)
+  reportingOfficer Decimal? @db.Decimal(12, 4)
+
+  @@unique([review_id, item_order], map: "uq_review_aspect")
+}
+
+model performancereviews {
+  id                     String    @id @map("_id") @db.VarChar(255)
+  employeeId             String?   @db.VarChar(255)
+  reportingOfficerId     String?   @db.VarChar(255)
+  reportingOfficerName   String?   @db.VarChar(255)
+  currentFinancialYear   String?   @db.VarChar(50)
+  designation            String?   @db.VarChar(255)
+  reviewDate             DateTime?
+  place                  String?   @db.VarChar(255)
+  generalHealth          String?   @db.Text
+  integrity              String?   @db.Text
+  officialLanguageWork   String?   @db.Text
+  otherCareerField       String?   @db.Text
+  promotionPotential     String?   @db.Text
+  trainingRecommendation String?   @db.Text
+  totalMarks             Decimal?  @db.Decimal(12, 4)
+  officerSignature       Json?
+  createdAt              DateTime?
+  updatedAt              DateTime?
+  source_document        Json?
+}
+
+model reviewingofficers {
+  id                            String    @id @map("_id") @db.VarChar(255)
+  currentFinancialYear          String?   @db.VarChar(30)
+  employeeId                    String?   @db.VarChar(255)
+  reviewAssessment              String?   @db.Text
+  reviewDate                    DateTime?
+  reviewDesignation             String?   @db.VarChar(255)
+  reviewingOfficerId            String?   @db.VarChar(255)
+  reviewName                    String?   @db.VarChar(255)
+  reviewPlace                   String?   @db.VarChar(255)
+  reviewRemarks                 String?   @db.Text
+  reviewTotalScore              Decimal?  @db.Decimal(15, 4)
+  officerSignature_url          String?   @db.Text
+  officerSignature_size         BigInt?
+  officerSignature_mimeType     String?   @db.VarChar(150)
+  officerSignature_public_id    String?   @db.VarChar(255)
+  officerSignature_originalName String?   @db.VarChar(255)
+  createdAt                     DateTime?
+  updatedAt                     DateTime?
+}
+
+model roles {
+  id        String    @id @map("_id") @db.VarChar(255)
+  role_key  String?   @db.VarChar(100)
+  role_name String?   @db.VarChar(255)
+  createdAt DateTime?
+  updatedAt DateTime?
+  v         Int?      @map("__v")
+}
+
+model sectionivs {
+  id                   String    @id @map("_id") @db.VarChar(255)
+  employeeId           String?   @db.VarChar(255)
+  reviewingOfficerId   String?   @db.VarChar(255)
+  currentFinancialYear String?   @db.VarChar(100)
+  nameDesignation      String?   @db.Text
+  assessmentAgree1     String?   @db.Text
+  assessmentAgree2     String?   @db.Text
+  differenceReason     String?   @db.Text
+  overallGrade         Decimal?  @db.Decimal(10, 2)
+  penPictureComments   String?   @db.LongText
+  officerSignature     Json?
+  createdAt            DateTime?
+  updatedAt            DateTime?
+}
+
+model selfappraisal_tasks {
+  task_id          String   @id @db.VarChar(255)
+  selfappraisal_id String   @db.VarChar(255)
+  taskName         String?  @db.VarChar(500)
+  weightage        Decimal? @db.Decimal(15, 2)
+  achievement      String?  @db.Text
+  deliverables     String?  @db.Text
+
+  @@index([selfappraisal_id], map: "idx_selfappraisal_id")
+}
+
+model selfappraisals {
+  id                            String    @id @map("_id") @db.VarChar(255)
+  employeeId                    String?   @db.VarChar(255)
+  department_id                 String?   @db.VarChar(255)
+  category_id                   String?   @db.VarChar(255)
+  currentFinancialYear          String?   @db.VarChar(50)
+  tasks                         Json?
+  constraints                   String?   @db.Text
+  responsibilities              String?   @db.Text
+  mouWeightage                  Decimal?  @db.Decimal(15, 2)
+  mouAchievement                String?   @db.Text
+  mouDeliverables               String?   @db.Text
+  officerSignature              Json?
+  reportingOfficerId            String?   @db.VarChar(255)
+  medicalCheckupDone            Boolean?
+  annualWorkPlanSetForOfficers  Boolean?
+  immovablePropertyReturnFiled  Boolean?
+  immovablePropertyReturnDate   DateTime?
+  totalTaskWeightage            Decimal?  @db.Decimal(15, 2)
+  calculatedTotalTaskWeightage  Decimal?  @db.Decimal(15, 2)
+  calculatedGrandTotal          Decimal?  @db.Decimal(15, 2)
+  exceptionalContribution       String?   @db.Text
+  futureCareerTraining          String?   @db.Text
+  currentAssignmentTraining     String?   @db.Text
+  createdAt                     DateTime?
+  updatedAt                     DateTime?
+  officerSignature_url          String?   @db.VarChar(1000)
+  officerSignature_size         BigInt?
+  officerSignature_mimeType     String?   @db.VarChar(100)
+  officerSignature_publicId     String?   @db.VarChar(500)
+  officerSignature_originalName String?   @db.VarChar(500)
+}
+
+model supervisors {
+  id                            String    @id @map("_id") @db.VarChar(255)
+  employeeId                    String?   @db.VarChar(255)
+  department_id                 String?   @db.VarChar(255)
+  category_id                   String?   @db.VarChar(255)
+  reportingOfficerId            String?   @db.VarChar(255)
+  financialYear                 String?   @db.VarChar(50)
+  name                          String?   @db.VarChar(255)
+  designation                   String?   @db.VarChar(255)
+  place                         String?   @db.VarChar(255)
+  date                          DateTime?
+  tasks                         String?   @db.LongText
+  achievements                  String?   @db.LongText
+  higherAchievements            String?   @db.LongText
+  shortfalls                    String?   @db.LongText
+  officerSignature_url          String?   @db.VarChar(1000)
+  officerSignature_size         BigInt?
+  officerSignature_mimeType     String?   @db.VarChar(100)
+  officerSignature_publicId     String?   @db.VarChar(500)
+  officerSignature_originalName String?   @db.VarChar(500)
+  v                             Int?      @map("__v")
+  createdAt                     DateTime?
+  updatedAt                     DateTime?
+}
+
+
+model users {
+  id                  String    @id @map("_id") @db.VarChar(255)
+  username            String?   @unique(map: "UQ_USERS_USERNAME") @db.VarChar(255)
+  firstName           String?   @db.VarChar(100)
+  lastName            String?   @db.VarChar(100)
+  phoneNumber         String?   @db.VarChar(30)
+  email               String?   @unique(map: "UQ_USERS_EMAIL") @db.VarChar(255)
+  password            String?   @db.VarChar(255)
+  role_id             String?   @db.VarChar(255)
+  empCode             String?   @db.VarChar(50)
+  isActive            Boolean?
+  createdAt           DateTime?
+  updatedAt           DateTime?
+
+  department_id       String?   @db.VarChar(255)
+  profilePic          String?   @db.VarChar(500)
+  refreshToken        String?   @db.Text
+  resetPasswordToken  String?   @db.VarChar(255)
+  resetPasswordExpire DateTime? @db.DateTime(3)
+
+  emailVerified       Boolean?  @default(false)
+  otp                 String?   @db.VarChar(255)
+  otpExpiry           DateTime? @db.DateTime(3)
+}

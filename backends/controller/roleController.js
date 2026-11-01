@@ -1,254 +1,97 @@
-import Role from "../models/roleModel.js";
-import mongoose from "mongoose";
-// helper to generate key
-const generateKey = (name) =>
-  name
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s]/g, ""); // remove only special characters      // remove spaces (NO underscore)
+import { randomBytes } from "node:crypto";
+import { prisma } from "../config/database.js";
+
+const db = prisma.roles;
+const newId = () => randomBytes(12).toString("hex");
+const validId = (id) => typeof id === "string" && /^[a-fA-F0-9]{24}$/.test(id);
+const withMongoId = (record) => record ? { ...record, _id: record.id } : record;
+const sameName = (a, b) => String(a ?? "").trim().toLowerCase() === String(b ?? "").trim().toLowerCase();
+const generateKey = (name) => name.toLowerCase().trim().replace(/[^a-z0-9\s]/g, "");
+
+const errorResponse = (res, error) => {
+  console.error("Role Controller Error:", error);
+  if (error.code === "P2002") return res.status(409).json({ success: false, message: "Role already exists" });
+  if (error.code === "P2003") return res.status(409).json({ success: false, message: "Role is referenced by other records" });
+  if (error.code === "P2025") return res.status(404).json({ success: false, message: "Role not found" });
+  return res.status(500).json({ success: false, message: "Internal server error" });
+};
+
 export const createRole = async (req, res) => {
   try {
-    let { role_name } = req.body;
-
-    // ❌ frontend se key lena allow nahi
-    if (req.body.role_key) {
-      return res.status(400).json({
-        success: false,
-        message: "role_key cannot be set manually",
-      });
+    const body = req.body || {};
+    if (Object.prototype.hasOwnProperty.call(body, "role_key")) {
+      return res.status(400).json({ success: false, message: "role_key cannot be set manually" });
     }
-
-    // ✅ required
-    if (!role_name || !role_name.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "Role name is required",
-      });
+    if (typeof body.role_name !== "string" || !body.role_name.trim()) {
+      return res.status(400).json({ success: false, message: "Role name is required" });
     }
-
-    role_name = role_name.trim();
-
-    
-
-    // 🔥 generate key
+    const role_name = body.role_name.trim();
     const role_key = generateKey(role_name);
-
-    // ✅ duplicate check (name + key)
-    const existingRole = await Role.findOne({
-      $or: [
-        { role_name: { $regex: `^${role_name}$`, $options: "i" } },
-        { role_key },
-      ],
-    });
-
-    if (existingRole) {
-      return res.status(400).json({
-        success: false,
-        message: "Role already exists",
-      });
+    const rows = await db.findMany({ select: { role_name: true, role_key: true } });
+    if (rows.some((row) => sameName(row.role_name, role_name) || row.role_key === role_key)) {
+      return res.status(400).json({ success: false, message: "Role already exists" });
     }
-
-    // ✅ create role
-    const role = await Role.create({
-      role_name,
-      role_key,
+    const role = await db.create({
+      data: { id: newId(), role_name, role_key, createdAt: new Date(), updatedAt: new Date() },
     });
-
-    res.status(201).json({
-      success: true,
-      message: "Role created successfully",
-      role,
-    });
-
-  } catch (err) {
-    console.error("Create Role Error:", err);
-    res.status(500).json({
-      success: false,
-      message: err.message || "Server error",
-    });
-  }
+    return res.status(201).json({ success: true, message: "Role created successfully", role: withMongoId(role) });
+  } catch (error) { return errorResponse(res, error); }
 };
 
 export const updateRole = async (req, res) => {
   try {
     const { id } = req.params;
-    let { role_name } = req.body;
-
-    // ❌ role_key update block
-    if (req.body.role_key) {
-      return res.status(400).json({
-        success: false,
-        message: "role_key cannot be updated",
-      });
+    if (!validId(id)) return res.status(400).json({ success: false, message: "Invalid Role ID" });
+    const body = req.body || {};
+    if (Object.prototype.hasOwnProperty.call(body, "role_key")) {
+      return res.status(400).json({ success: false, message: "role_key cannot be updated" });
     }
-
-    // ❌ ID validation
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid Role ID",
-      });
+    const old = await db.findUnique({ where: { id } });
+    if (!old) return res.status(404).json({ success: false, message: "Role not found" });
+    if (typeof body.role_name !== "string" || !body.role_name.trim()) {
+      return res.status(400).json({ success: false, message: "Role name is required" });
     }
-
-    const role = await Role.findById(id);
-
-    if (!role) {
-      return res.status(404).json({
-        success: false,
-        message: "Role not found",
-      });
+    const role_name = body.role_name.trim();
+    if (sameName(old.role_name, role_name)) {
+      return res.status(400).json({ success: false, message: "New role name must be different" });
     }
-
-    // ❌ required check
-    if (!role_name || !role_name.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "Role name is required",
-      });
+    const rows = await db.findMany({ where: { id: { not: id } }, select: { role_name: true } });
+    if (rows.some((row) => sameName(row.role_name, role_name))) {
+      return res.status(400).json({ success: false, message: "Role already exists" });
     }
-
-    // 👉 RAW INPUT (NO CASE CHANGE)
-    role_name = role_name.trim();
-
-    
-
-    // ❌ same name check
-    if (role_name === role.role_name) {
-      return res.status(400).json({
-        success: false,
-        message: "New role name must be different",
-      });
-    }
-
-    // ❌ duplicate check (case-insensitive safe)
-    const existing = await Role.findOne({
-      role_name: { $regex: `^${role_name}$`, $options: "i" },
-      _id: { $ne: id }, // 👈 avoid self-match bug
-    });
-
-    if (existing) {
-      return res.status(400).json({
-        success: false,
-        message: "Role already exists",
-      });
-    }
-
-    // 🔥 FINAL SAVE (EXACT ADMIN VALUE)
-    role.role_name = role_name;
-
-    await role.save();
-
-    return res.status(200).json({
-      success: true,
-      message: "Role updated successfully",
-      role,
-    });
-
-  } catch (err) {
-    return res.status(500).json({
-      success: false,
-      message: err.message || "Server error",
-    });
-  }
+    // Keep role_key stable because authorization rules may depend on it.
+    const role = await db.update({ where: { id }, data: { role_name, updatedAt: new Date() } });
+    return res.status(200).json({ success: true, message: "Role updated successfully", role: withMongoId(role) });
+  } catch (error) { return errorResponse(res, error); }
 };
-
 
 export const getRoles = async (req, res) => {
   try {
-    const roles = await Role.find({}).sort({ createdAt: -1 });
-
-    res.status(200).json({
-      success: true,
-      count: roles.length,
-      roles,
-    });
-  } catch (err) {
-    console.error("Get Roles Error:", err);
-
-    res.status(500).json({
-      success: false,
-      message: err.message || "Server error",
-    });
-  }
+    const roles = await db.findMany({ orderBy: { createdAt: "desc" } });
+    return res.status(200).json({ success: true, count: roles.length, roles: roles.map(withMongoId) });
+  } catch (error) { return errorResponse(res, error); }
 };
-// ================= GET SINGLE ROLE =================
+
 export const getRoleById = async (req, res) => {
   try {
     const { id } = req.params;
-
-    // ✅ ID validation
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid Role ID",
-      });
-    }
-
-    const role = await Role.findById(id);
-
-    if (!role) {
-      return res.status(404).json({
-        success: false,
-        message: "Role not found",
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      role,
-    });
-
-  } catch (err) {
-    res.status(500).json({
-      success: false,
-      message: err.message || "Server error",
-    });
-  }
+    if (!validId(id)) return res.status(400).json({ success: false, message: "Invalid Role ID" });
+    const role = await db.findUnique({ where: { id } });
+    if (!role) return res.status(404).json({ success: false, message: "Role not found" });
+    return res.status(200).json({ success: true, role: withMongoId(role) });
+  } catch (error) { return errorResponse(res, error); }
 };
+
 export const deleteRole = async (req, res) => {
   try {
     const { id } = req.params;
-
-    // ✅ ID validation
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid Role ID",
-      });
-    }
-
-    // 🔍 find role first
-    const role = await Role.findById(id);
-
-    if (!role) {
-      return res.status(404).json({
-        success: false,
-        message: "Role not found",
-      });
-    }
-
-    // 🔒 BLOCK ADMIN ROLE DELETE
+    if (!validId(id)) return res.status(400).json({ success: false, message: "Invalid Role ID" });
+    const role = await db.findUnique({ where: { id } });
+    if (!role) return res.status(404).json({ success: false, message: "Role not found" });
     if (role.role_key === "admin") {
-      return res.status(403).json({
-        success: false,
-        message: "Admin role cannot be deleted",
-      });
+      return res.status(403).json({ success: false, message: "Admin role cannot be deleted" });
     }
-
-    // 🗑️ delete role
-    await Role.findByIdAndDelete(id);
-
-    res.status(200).json({
-      success: true,
-      message: "Role deleted successfully",
-    });
-
-  } catch (err) {
-    console.error("Delete Role Error:", err);
-
-    res.status(500).json({
-      success: false,
-      message: err.message || "Server error",
-    });
-  }
+    await db.delete({ where: { id } });
+    return res.status(200).json({ success: true, message: "Role deleted successfully" });
+  } catch (error) { return errorResponse(res, error); }
 };

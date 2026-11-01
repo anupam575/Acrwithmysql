@@ -1,19 +1,27 @@
-import mongoose from "mongoose";
 
+import mongoose from "mongoose";
+import "dotenv/config";
+import { PrismaClient } from "../generated/prisma/index.js";
+
+// Prisma Client for MySQL
+export const prisma = new PrismaClient();
+
+// Database connection
 const connectDatabase = async () => {
   try {
-    const mongoURI = process.env.MONGO_URI;
+    // 1. Connect to MySQL
+    await prisma.$connect();
+    console.log("✅ MySQL connected successfully using Prisma");
 
-    if (!mongoURI) {
-      throw new Error("MONGO_URI is not defined in environment variables");
+    // 2. MongoDB connection (temporarily retained)
+    // Enable only when existing MongoDB APIs need to run.
+    if (process.env.MONGO_URI) {
+      await mongoose.connect(process.env.MONGO_URI);
+      console.log("✅ MongoDB connected successfully");
     }
 
-    await mongoose.connect(mongoURI);
-
-    // console.log(`✅ MongoDB connected: ${mongoose.connection.name}`);
-    // console.log("MONGO_URI:", process.env.MONGO_URI);
   } catch (error) {
-    console.error(`❌ MongoDB connection error: ${error.message}`);
+    console.error("❌ Database connection error:", error.message);
     process.exit(1);
   }
 };

@@ -1,6 +1,9 @@
 import API from "../../../utils/axiosInstance";
 import { useEffect, useState } from "react";
 
+// 🔧 Backend base URL (hardcoded, no env variable used)
+const BACKEND_URL = "http://localhost:4000";
+
 export default function currentItemView({ employeeId }) {
   const [currentItems, setCurrentItems] = useState([]);
   const [currentItem, setCurrentItem] = useState(null);
@@ -331,6 +334,39 @@ export default function currentItemView({ employeeId }) {
                       {currentItem.acceptingRemarks ||
                         "No remarks available."}
                     </p>
+                  </section>
+
+                  {/* 👇 ADDED: Accepting Authority Signature Section */}
+                  <section className="overflow-hidden rounded-md border border-slate-200 bg-white">
+                    <div className="flex items-start gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3">
+                      <span className="mt-0.5 h-5 w-1 shrink-0 rounded-full bg-blue-800" />
+
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-900">
+                          Accepting Authority Signature
+                        </h3>
+
+                        <p className="mt-0.5 text-xs text-slate-500">
+                          Digitally uploaded signature of the accepting authority
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-center p-4">
+                      <div className="flex min-h-40 w-full max-w-md items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4">
+                        {currentItem?.officerSignature?.url ? (
+                          <img
+                            src={`${BACKEND_URL}${currentItem.officerSignature.url}`}
+                            alt="Accepting Authority Signature"
+                            className="max-h-32 max-w-full object-contain"
+                          />
+                        ) : (
+                          <p className="text-sm font-medium text-slate-500">
+                            Signature not available
+                          </p>
+                        )}
+                      </div>
+                    </div>
                   </section>
                 </div>
 

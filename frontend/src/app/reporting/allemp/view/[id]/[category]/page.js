@@ -202,10 +202,7 @@ const isBasic =
                   : "Supervisory and Below"}
               </p>
             </div>
-            <div>
-  <p>categoryKey: {categoryKey}</p>
-  <p>isSenior: {String(isSenior)}</p>
-</div>
+        
 
             <div className="rounded-lg border border-slate-200 bg-white px-4 py-4 shadow-sm">
               <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">

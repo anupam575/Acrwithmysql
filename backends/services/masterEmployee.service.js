@@ -1,242 +1,30 @@
-import MasterEmployee from "../models/MasterEmployee.js";
-import AppError from "../utils/AppError.js";
-export const createMasterEmployee = async ({
-  employeeRefId,
-  sourceModel,
-  employeeCode,
-  email,
-    phoneNumber, // ✅ Add this
-
-  password,
-  role = null,
-  category = null,
-  designations = null,
-  authorities = {},
-}) => {
-  try {
-    const normalizedCode = employeeCode?.toString().trim();
-    const normalizedEmail = email?.toLowerCase().trim();
-const normalizedPhone = phoneNumber?.trim();
-    // ================= VALIDATION =================
-    if (!employeeRefId) throw new AppError("employeeRefId is required", 400);
-    if (!sourceModel) throw new AppError("sourceModel is required", 400);
-    if (!normalizedCode) throw new AppError("employeeCode is required", 400);
-    if (!normalizedEmail) throw new AppError("email is required", 400);
-
-    // ================= FIND EXISTING =================
-    const existing = await MasterEmployee.findOne({ employeeRefId });
-
-    // ================= DUPLICATE CHECK =================
-    await checkDuplicateEmployee({
-  models: [MasterEmployee],
-  employeeCode: normalizedCode,
-  email: normalizedEmail,
-  phoneNumber: normalizedPhone,
-  excludeId: existing?._id,
-});
-    const normalizedAuthorities = {
-      reporting: authorities?.reporting || [],
-      reviewing: authorities?.reviewing || [],
-      accepting: authorities?.accepting || [],
-    };
-
-    // ================= UPSERT =================
-    const result = await MasterEmployee.findOneAndUpdate(
-      { employeeRefId },
-      {
-        $set: {
-          employeeRefId,
-          sourceModel,
-          employeeCode: normalizedCode,
-          email: normalizedEmail,
-          password,
-          role,
-            phoneNumber: normalizedPhone, // ✅ Add this
-
-          category,
-          designations,
-          authorities: normalizedAuthorities,
-        },
-      },
-      {
-        upsert: true,
-        new: true,
-        runValidators: true,
-        setDefaultsOnInsert: true,
-      }
-    );
-
-    return result;
-  } catch (error) {
-    throw error instanceof AppError
-      ? error
-      : new AppError(error.message || "Master employee error", 500);
-  }
-};
-
-
-export const updateMasterEmployee = async ({
-  employeeRefId,
-  employeeCode,
-  email,
-  password,
-  role,
-  category,
-    phoneNumber, // ✅ Add
-
-  designations,
-  sourceModel,
-  authorities,
-}) => {
-  try {
-    if (!employeeRefId) {
-      throw new AppError("employeeRefId is required", 400);
-    }
-
-    const current = await MasterEmployee.findOne({ employeeRefId });
-
-    if (!current) {
-      throw new AppError("MasterEmployee not found", 404);
-    }
-
-    const normalizedCode = employeeCode?.toString().trim();
-    const normalizedEmail = email?.toLowerCase().trim();
-const normalizedPhone = phoneNumber?.trim();
-    await checkDuplicateEmployee({
-  models: [MasterEmployee],
-  employeeCode: normalizedCode,
-  email: normalizedEmail,
-  phoneNumber: normalizedPhone,
-  excludeId: current._id,
-});
-
-    if (sourceModel !== undefined) {
-      current.sourceModel = sourceModel;
-    }
-
-    if (normalizedCode) {
-      current.employeeCode = normalizedCode;
-    }
-
-    if (normalizedEmail) {
-      current.email = normalizedEmail;
-    }
-
-    if (password !== undefined) {
-      current.password = password;
-    }
-
-    if (role !== undefined) {
-      current.role = role;
-    }
-
-    if (category !== undefined) {
-      current.category = category;
-    }
-if (designations !== undefined) {
-  current.designations = designations;
-}
-if (normalizedPhone) {
-  current.phoneNumber = normalizedPhone;
-}
-    // =========================
-    // AUTHORITIES UPDATE (IMPORTANT ADD)
-    // =========================
-    if (authorities !== undefined) {
-      current.authorities = {
-        reporting:
-          authorities?.reporting?.map((item) => ({
-            name: item.name || null,
-            designation: item.designation || null,
-            from: item.from || null,
-            to: item.to || null,
-          })) || [],
-
-        reviewing:
-          authorities?.reviewing?.map((item) => ({
-            name: item.name || null,
-            designation: item.designation || null,
-            from: item.from || null,
-            to: item.to || null,
-          })) || [],
-
-        accepting:
-          authorities?.accepting?.map((item) => ({
-            name: item.name || null,
-            designation: item.designation || null,
-            from: item.from || null,
-            to: item.to || null,
-          })) || [],
-      };
-    }
-
-    await current.save();
-
-    return current;
-  } catch (error) {
-    if (error.code === 11000) {
-      const field = Object.keys(error.keyPattern || {})[0];
-      const value = error.keyValue?.[field];
-
-      throw new AppError(`${field} '${value}' already exists`, 409);
-    }
-
-    if (error instanceof AppError) {
-      throw error;
-    }
-
-    throw new AppError(
-      error.message || "Master employee update failed",
-      500
-    );
-  }
-};
-
-export const checkDuplicateEmployee = async ({
-  models = [],
-  employeeCode,
-  email,
-    phoneNumber,
-
-  
-  excludeId = null,
-}) => {
-  const code = employeeCode?.toString().trim();
-  const mail = email?.toLowerCase().trim();
-const phone = phoneNumber?.trim();
-  const orConditions = [];
-
-  if (code) orConditions.push({ employeeCode: code });
-  if (mail) orConditions.push({ email: mail });
-if (phone) orConditions.push({ phoneNumber: phone });
-  if (!orConditions.length) return;
-
-  const query = { $or: orConditions };
-
-  if (excludeId) {
-    query._id = { $ne: excludeId };
-  }
-
+import { prisma,newId,arr,date,asMongo } from './prismaCompat.js';
+import AppError from '../utils/AppError.js';
+const normalize = v => v == null ? null : String(v).trim();
+export const checkDuplicateEmployee = async ({models=[],employeeCode,email,phoneNumber,excludeId=null}) => {
+  const filters=[employeeCode && {employeeCode:normalize(employeeCode)},email && {email:normalize(email).toLowerCase()},phoneNumber && {phoneNumber:normalize(phoneNumber)}].filter(Boolean);
+  if (!filters.length) return;
   for (const model of models) {
-    const exists = await model.findOne(query).lean();
-
-    if (exists) {
-      const messages = {
-        employeeCode: "EmployeeCode already exists",
-        email: "Email already exists",
-          phoneNumber: "Phone number already exists",
-
-      };
-
-      let field = null;
-
-      if (exists.employeeCode === code) field = "employeeCode";
-      if (exists.email === mail) field = "email";
-if (exists.phoneNumber === phone) field = "phoneNumber";
-      throw new AppError(
-        `${messages[field] || "Duplicate entry found"} in ${model.modelName}`,
-        409
-      );
-    }
+    const isMaster=model===prisma.masteremployees; const exclusion=excludeId ? (isMaster?{employeeRefId:{not:String(excludeId)}}:{id:{not:String(excludeId)}}) : {}; const found=await model.findFirst({where:{OR:filters,...exclusion}});
+    if (found) throw new AppError('EmployeeCode, Email or Phone number already exists',409);
   }
 };
+const buildChildren = (authorities={},designations=[]) => ({
+ masteremployee_authorities:{create:['reporting','reviewing','accepting'].flatMap(type=>arr(authorities[type]).map((r,index)=>({authority_type:type,authority_index:index,authority_record_id:r._id || null,authority_name_id:r.name?String(r.name):null,designation_id:r.designation?String(r.designation):null,from_date:date(r.from),to_date:date(r.to)})))},
+ masteremployee_designations:{create:arr(designations).filter(Boolean).map(d=>({designation_id:String(d._id || d)}))}
+});
+export const createMasterEmployee = async p => {
+ const ref=String(p.employeeRefId); const existing=await prisma.masteremployees.findFirst({where:{employeeRefId:ref}});
+ const payload={employeeRefId:ref,sourceModel:p.sourceModel||'EmployeeNew',employeeCode:normalize(p.employeeCode),email:normalize(p.email)?.toLowerCase(),phoneNumber:normalize(p.phoneNumber),password:p.password,role_id:p.role||null,category_id:p.category||null,updatedAt:new Date()};
+ await checkDuplicateEmployee({models:[prisma.masteremployees],employeeCode:payload.employeeCode,email:payload.email,phoneNumber:payload.phoneNumber,excludeId:ref});
+ if (existing) {
+   return prisma.$transaction(async tx=>{await tx.masteremployee_authorities.deleteMany({where:{employee_id:existing.id}});await tx.masteremployee_designations.deleteMany({where:{employee_id:existing.id}});return tx.masteremployees.update({where:{id:existing.id},data:{...payload,...buildChildren(p.authorities,p.designations)}});});
+ }
+ return prisma.masteremployees.create({data:{id:newId(),createdAt:new Date(),...payload,...buildChildren(p.authorities,p.designations)}});
+};
+export const updateMasterEmployee = async p => {
+ const existing=await prisma.masteremployees.findFirst({where:{employeeRefId:String(p.employeeRefId)},include:{masteremployee_authorities:true}});
+ if (!existing) throw new AppError('MasterEmployee not found',404);
+ return createMasterEmployee({...p,sourceModel:p.sourceModel??existing.sourceModel,employeeCode:p.employeeCode??existing.employeeCode,email:p.email??existing.email,phoneNumber:p.phoneNumber??existing.phoneNumber,password:p.password??existing.password,role:p.role??existing.role_id,category:p.category??existing.category_id,designations:p.designations??(await prisma.masteremployee_designations.findMany({where:{employee_id:existing.id}})).map(x=>x.designation_id),authorities:p.authorities??Object.fromEntries(['reporting','reviewing','accepting'].map(t=>[t,(existing.masteremployee_authorities||[]).filter(a=>a.authority_type===t).map(a=>({name:a.authority_name_id,designation:a.designation_id,from:a.from_date,to:a.to_date}))]))});
+};
+export const masterAsMongo = r => asMongo(r,{role:r.role_id,category:r.category_id,designations:(r.masteremployee_designations||[]).map(x=>x.designation_id),authorities:['reporting','reviewing','accepting'].reduce((o,t)=>(o[t]=(r.masteremployee_authorities||[]).filter(a=>a.authority_type===t).sort((a,b)=>a.authority_index-b.authority_index).map(a=>({name:a.authority_name_id,designation:a.designation_id,from:a.from_date,to:a.to_date})),o),{})});

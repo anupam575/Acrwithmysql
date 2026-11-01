@@ -11,7 +11,7 @@ export const selfAppraisalDTO = (data = {}) => {
 
     mouAchievement:
       data?.mouAchievement || "",
-// 👇 ADD THIS
+
     totalTaskWeightage:
       data?.totalTaskWeightage || "",
 
@@ -75,5 +75,11 @@ export const selfAppraisalDTO = (data = {}) => {
       data?.annualWorkPlanSetForOfficers
         ? "yes"
         : "no",
+
+    // 👇 Backend se aane wala signature object jaisa ka waisa rakho
+    // Response shape: { url: "/uploads/xxx.jpeg", public_id, originalName, mimeType, size }
+    // SelfAppraisalFields.jsx ka useObjectUrl isko BACKEND_URL ke saath prefix karke preview dikhata hai
+    officerSignature:
+      data?.officerSignature || null,
   };
 };

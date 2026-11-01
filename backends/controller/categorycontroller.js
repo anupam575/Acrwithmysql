@@ -1,216 +1,89 @@
-// categoryController.js
-import Category from "../models/categoryModel.js";
-import mongoose from "mongoose"; // ES6 import
-const generateKey = (name) =>
-  name
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s]/g, "");
-export const createCategory = async (req, res) => {
-  try {
-    let { name } = req.body;
+import { randomBytes } from "node:crypto";
+import { prisma } from "../config/database.js";
 
-    // 1. validate
-    if (!name || !name.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "Category name is required",
-      });
-    }
+const db = prisma.categories;
+const newId = () => randomBytes(12).toString("hex");
+const validId = (id) => typeof id === "string" && /^[a-fA-F0-9]{24}$/.test(id);
+const withMongoId = (record) => record ? { ...record, _id: record.id } : record;
+const sameName = (a, b) => String(a ?? "").trim().toLowerCase() === String(b ?? "").trim().toLowerCase();
+const generateKey = (name) => name.toLowerCase().trim().replace(/[^a-z0-9\s]/g, "");
 
-    name = name.trim();
-
-
-    // 3. duplicate name check
-    const exists = await Category.findOne({
-      name: { $regex: `^${name}$`, $options: "i" },
-    });
-
-    if (exists) {
-      return res.status(409).json({
-        success: false,
-        message: "Category already exists",
-      });
-    }
-
-    // 4. generate key
-    const category_key = generateKey(name);
-
-    // 5. create
-    const category = await Category.create({
-      name,
-      category_key,
-    });
-
-    return res.status(201).json({
-      success: true,
-      message: "Category created successfully",
-      category,
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
+const errorResponse = (res, error) => {
+  console.error("Category Controller Error:", error);
+  if (error.code === "P2002") return res.status(409).json({ success: false, message: "Category already exists" });
+  if (error.code === "P2003") return res.status(409).json({ success: false, message: "Category is referenced by other records" });
+  if (error.code === "P2025") return res.status(404).json({ success: false, message: "Category not found" });
+  return res.status(500).json({ success: false, message: "Internal server error" });
 };
 
-
+export const createCategory = async (req, res) => {
+  try {
+    const { name: rawName } = req.body || {};
+    if (typeof rawName !== "string" || !rawName.trim()) {
+      return res.status(400).json({ success: false, message: "Category name is required" });
+    }
+    const name = rawName.trim();
+    const category_key = generateKey(name);
+    const rows = await db.findMany({ select: { name: true, category_key: true } });
+    if (rows.some((row) => sameName(row.name, name) || row.category_key === category_key)) {
+      return res.status(409).json({ success: false, message: "Category already exists" });
+    }
+    const category = await db.create({
+      data: { id: newId(), name, category_key, createdAt: new Date(), updatedAt: new Date() },
+    });
+    return res.status(201).json({ success: true, message: "Category created successfully", category: withMongoId(category) });
+  } catch (error) { return errorResponse(res, error); }
+};
 
 export const updateCategory = async (req, res) => {
   try {
     const { id } = req.params;
-    let { name } = req.body;
-
-    // 1. validate ID
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid Category ID",
-      });
+    if (!validId(id)) return res.status(400).json({ success: false, message: "Invalid Category ID" });
+    const old = await db.findUnique({ where: { id } });
+    if (!old) return res.status(404).json({ success: false, message: "Category not found" });
+    const { name: rawName } = req.body || {};
+    if (typeof rawName !== "string" || !rawName.trim()) {
+      return res.status(400).json({ success: false, message: "Category name is required" });
     }
-
-    // 2. find category
-    const category = await Category.findById(id);
-
-    if (!category) {
-      return res.status(404).json({
-        success: false,
-        message: "Category not found",
-      });
+    const name = rawName.trim();
+    if (sameName(old.name, name)) {
+      return res.status(400).json({ success: false, message: "New category name must be different" });
     }
-
-    // 3. validate name
-    if (!name || !name.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "Category name is required",
-      });
+    const category_key = generateKey(name);
+    const rows = await db.findMany({ where: { id: { not: id } }, select: { name: true, category_key: true } });
+    if (rows.some((row) => sameName(row.name, name) || row.category_key === category_key)) {
+      return res.status(409).json({ success: false, message: "Category already exists" });
     }
-
-    name = name.trim();
-
-
-    // 4. duplicate check (ignore self)
-    const exists = await Category.findOne({
-      _id: { $ne: id },
-      name: { $regex: `^${name}$`, $options: "i" },
-    });
-
-    if (exists) {
-      return res.status(409).json({
-        success: false,
-        message: "Category already exists",
-      });
-    }
-
-    // 5. ONLY update name (NOT key)
-    category.name = name;
-
-    await category.save();
-
-    return res.status(200).json({
-      success: true,
-      message: "Category updated successfully",
-      category,
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
+    // Keep category_key stable on rename to avoid breaking existing references.
+    const category = await db.update({ where: { id }, data: { name, updatedAt: new Date() } });
+    return res.status(200).json({ success: true, message: "Category updated successfully", category: withMongoId(category) });
+  } catch (error) { return errorResponse(res, error); }
 };
 
 export const getAllCategories = async (req, res) => {
   try {
-    const categories = await Category.find().sort({ createdAt: -1 });
-
-    res.status(200).json({
-      success: true,
-      count: categories.length,
-      categories,
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
+    const categories = await db.findMany({ orderBy: { createdAt: "desc" } });
+    return res.status(200).json({ success: true, count: categories.length, categories: categories.map(withMongoId) });
+  } catch (error) { return errorResponse(res, error); }
 };
 
-// ✅ Get Single Category by ID
 export const getCategoryById = async (req, res) => {
   try {
     const { id } = req.params;
-
-    // 1️⃣ Validate MongoDB ObjectId
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid category ID",
-      });
-    }
-
-    // 2️⃣ Find category
-    const category = await Category.findById(id);
-
-    if (!category) {
-      return res.status(404).json({
-        success: false,
-        message: "Category not found",
-      });
-    }
-
-    // 3️⃣ Success response
-    res.status(200).json({
-      success: true,
-      category,
-    });
-  } catch (error) {
-    console.error("[GET CATEGORY BY ID ERROR]:", error.message);
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-      error: error.message,
-    });
-  }
+    if (!validId(id)) return res.status(400).json({ success: false, message: "Invalid Category ID" });
+    const category = await db.findUnique({ where: { id } });
+    if (!category) return res.status(404).json({ success: false, message: "Category not found" });
+    return res.status(200).json({ success: true, category: withMongoId(category) });
+  } catch (error) { return errorResponse(res, error); }
 };
 
-
-// Delete Category
 export const deleteCategory = async (req, res) => {
   try {
     const { id } = req.params;
-
-    // 1. Validate ID
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid Category ID",
-      });
-    }
-
-    // 2. Find category
-    const category = await Category.findById(id);
-
-    if (!category) {
-      return res.status(404).json({
-        success: false,
-        message: "Category not found",
-      });
-    }
-
-    // 3. Delete category
-    await Category.findByIdAndDelete(id);
-
-    res.status(200).json({
-      success: true,
-      message: "Category deleted successfully",
-    });
-  } catch (error) {
-    console.error("[DELETE CATEGORY ERROR]:", error.message);
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-      error: error.message,
-    });
-  }
+    if (!validId(id)) return res.status(400).json({ success: false, message: "Invalid Category ID" });
+    const category = await db.findUnique({ where: { id } });
+    if (!category) return res.status(404).json({ success: false, message: "Category not found" });
+    await db.delete({ where: { id } });
+    return res.status(200).json({ success: true, message: "Category deleted successfully" });
+  } catch (error) { return errorResponse(res, error); }
 };

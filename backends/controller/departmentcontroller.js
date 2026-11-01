@@ -1,80 +1,224 @@
-import Department from "../models/departmentModel.js";
 
-// =========================
+import { randomBytes } from "node:crypto";
+import { prisma } from "../config/database.js";
+
+// ==========================================
+// PRISMA MODEL
+// ==========================================
+const db = prisma.departments;
+
+// ==========================================
+// HELPER FUNCTIONS
+// ==========================================
+
+// Generate MongoDB-compatible 24-character ID
+const newId = () => randomBytes(12).toString("hex");
+
+// Validate MongoDB-compatible ID
+const validId = (id) =>
+  typeof id === "string" &&
+  /^[a-fA-F0-9]{24}$/.test(id);
+
+// Preserve MongoDB-style _id in API responses
+const withMongoId = (record) =>
+  record ? { ...record, _id: record.id } : record;
+
+// Case-insensitive department name comparison
+const sameName = (a, b) =>
+  String(a || "").trim().toLowerCase() ===
+  String(b || "").trim().toLowerCase();
+
+// Common error handler
+const errorResponse = (res, error) => {
+  console.error("Department Controller Error:", error);
+
+  return res.status(500).json({
+    success: false,
+    message: "Internal server error",
+  });
+};
+
+// ==========================================
 // CREATE DEPARTMENT
-// =========================
+// ==========================================
 export const createDepartment = async (req, res) => {
   try {
-    const { department_name } = req.body;
+    let { department_name } = req.body || {};
 
-    if (!department_name?.trim()) {
+    if (
+      typeof department_name !== "string" ||
+      !department_name.trim()
+    ) {
       return res.status(400).json({
         success: false,
         message: "Department name is required",
       });
     }
 
-    const name = department_name.trim();
+    department_name = department_name.trim();
 
-    const existing = await Department.findOne({
-      department_name: name,
+    const existingDepartments = await db.findMany({
+      select: {
+        department_name: true,
+      },
     });
 
-    if (existing) {
+    const duplicate = existingDepartments.some((item) =>
+      sameName(item.department_name, department_name)
+    );
+
+    if (duplicate) {
       return res.status(400).json({
         success: false,
         message: "Department already exists",
       });
     }
 
-    const department = await Department.create({
-      department_name: name,
+    const department = await db.create({
+      data: {
+        id: newId(),
+        department_name,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
     });
 
     return res.status(201).json({
       success: true,
       message: "Department created successfully",
-      department,
+      department: withMongoId(department),
     });
-  } catch (err) {
-    console.error("❌ Create Department Error:", err);
-
-    return res.status(500).json({
-      success: false,
-      message: err.message || "Server error",
-    });
+  } catch (error) {
+    return errorResponse(res, error);
   }
 };
 
+// ==========================================
+// UPDATE DEPARTMENT
+// ==========================================
+export const updateDepartment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    let { department_name } = req.body || {};
 
+    if (!validId(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid Department ID",
+      });
+    }
 
+    const existingDepartment = await db.findUnique({
+      where: { id },
+    });
 
+    if (!existingDepartment) {
+      return res.status(404).json({
+        success: false,
+        message: "Department not found",
+      });
+    }
+
+    if (
+      typeof department_name !== "string" ||
+      !department_name.trim()
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Department name is required",
+      });
+    }
+
+    department_name = department_name.trim();
+
+    if (
+      sameName(
+        existingDepartment.department_name,
+        department_name
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "New department name must be different",
+      });
+    }
+
+    const otherDepartments = await db.findMany({
+      where: {
+        id: { not: id },
+      },
+      select: {
+        department_name: true,
+      },
+    });
+
+    const duplicate = otherDepartments.some((item) =>
+      sameName(item.department_name, department_name)
+    );
+
+    if (duplicate) {
+      return res.status(400).json({
+        success: false,
+        message: "Department already exists",
+      });
+    }
+
+    const department = await db.update({
+      where: { id },
+      data: {
+        department_name,
+        updatedAt: new Date(),
+      },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Department updated successfully",
+      department: withMongoId(department),
+    });
+  } catch (error) {
+    return errorResponse(res, error);
+  }
+};
+
+// ==========================================
+// GET ALL DEPARTMENTS
+// ==========================================
 export const getDepartments = async (req, res) => {
   try {
-    const departments = await Department.find().sort({ createdAt: -1 });
+    const departments = await db.findMany({
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
 
     return res.status(200).json({
       success: true,
       count: departments.length,
-      departments,
+      departments: departments.map(withMongoId),
     });
-  } catch (err) {
-    console.error("❌ Get Departments Error:", err);
-
-    return res.status(500).json({
-      success: false,
-      message: err.message || "Server error",
-    });
+  } catch (error) {
+    return errorResponse(res, error);
   }
 };
 
-
-
+// ==========================================
+// GET DEPARTMENT BY ID
+// ==========================================
 export const getDepartmentById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const department = await Department.findById(id);
+    if (!validId(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid Department ID",
+      });
+    }
+
+    const department = await db.findUnique({
+      where: { id },
+    });
 
     if (!department) {
       return res.status(404).json({
@@ -85,117 +229,63 @@ export const getDepartmentById = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      department,
+      department: withMongoId(department),
     });
-  } catch (err) {
-    console.error("❌ Get Department Error:", err);
-
-    return res.status(500).json({
-      success: false,
-      message: err.message || "Server error",
-    });
+  } catch (error) {
+    return errorResponse(res, error);
   }
 };
 
-
-
-export const updateDepartment = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { department_name } = req.body;
-
-    if (!department_name?.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "Department name is required",
-      });
-    }
-
-    const name = department_name.trim();
-
-    const existing = await Department.findOne({
-      department_name: name,
-      _id: { $ne: id }, // ignore current record
-    });
-
-    if (existing) {
-      return res.status(400).json({
-        success: false,
-        message: "Department already exists",
-      });
-    }
-
-    const updated = await Department.findByIdAndUpdate(
-      id,
-      { department_name: name },
-      { new: true }
-    );
-
-    if (!updated) {
-      return res.status(404).json({
-        success: false,
-        message: "Department not found",
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
-      message: "Department updated successfully",
-      department: updated,
-    });
-  } catch (err) {
-    console.error("❌ Update Department Error:", err);
-
-    return res.status(500).json({
-      success: false,
-      message: err.message || "Server error",
-    });
-  }
-};
-
-
-
-
+// ==========================================
+// DELETE DEPARTMENT
+// ==========================================
 export const deleteDepartment = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const deleted = await Department.findByIdAndDelete(id);
+    if (!validId(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid Department ID",
+      });
+    }
 
-    if (!deleted) {
+    const department = await db.findUnique({
+      where: { id },
+    });
+
+    if (!department) {
       return res.status(404).json({
         success: false,
         message: "Department not found",
       });
     }
+
+    await db.delete({
+      where: { id },
+    });
 
     return res.status(200).json({
       success: true,
       message: "Department deleted successfully",
     });
-  } catch (err) {
-    console.error("❌ Delete Department Error:", err);
-
-    return res.status(500).json({
-      success: false,
-      message: err.message || "Server error",
-    });
+  } catch (error) {
+    return errorResponse(res, error);
   }
 };
 
-
+// ==========================================
+// GET DEPARTMENT COUNT
+// ==========================================
 export const getDepartmentCount = async (req, res) => {
   try {
-    const totalDepartments = await Department.countDocuments();
+    const totalDepartments = await db.count();
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       totalDepartments,
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return errorResponse(res, error);
   }
 };

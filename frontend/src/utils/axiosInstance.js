@@ -2,6 +2,37 @@ import axios from "axios";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
+/* ================= MONGO EJSON -> PLAIN VALUES ================= */
+/**
+ * { $numberInt: "5" } -> 5
+ * { $oid: "abc" }     -> "abc"
+ * { $date: ... }      -> ISO string
+ * Recursively cleans objects and arrays so React never receives
+ * an object like { $numberInt } as a child (React error #31).
+ */
+export const unwrapEJSON = (v) => {
+  if (Array.isArray(v)) return v.map(unwrapEJSON);
+
+  if (v && typeof v === "object") {
+    if ("$numberInt" in v) return Number(v.$numberInt);
+    if ("$numberLong" in v) return Number(v.$numberLong);
+    if ("$numberDouble" in v) return Number(v.$numberDouble);
+    if ("$numberDecimal" in v) return Number(v.$numberDecimal);
+    if ("$oid" in v) return v.$oid;
+
+    if ("$date" in v) {
+      const d = new Date(unwrapEJSON(v.$date));
+      return isNaN(d.getTime()) ? null : d.toISOString();
+    }
+
+    return Object.fromEntries(
+      Object.entries(v).map(([k, x]) => [k, unwrapEJSON(x)]),
+    );
+  }
+
+  return v;
+};
+
 /* ================= BASE INSTANCES ================= */
 const API = axios.create({
   baseURL: BASE_URL,
@@ -30,7 +61,22 @@ const refreshToken = async () => {
 
 /* ================= INTERCEPTOR ================= */
 API.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Clean any leftover Mongo EJSON ($numberInt, $oid, $date...) from every response
+    // (skip blobs / files / strings)
+    if (response?.data && typeof response.data === "object") {
+      const isBinary =
+        (typeof Blob !== "undefined" && response.data instanceof Blob) ||
+        (typeof ArrayBuffer !== "undefined" &&
+          response.data instanceof ArrayBuffer);
+
+      if (!isBinary) {
+        response.data = unwrapEJSON(response.data);
+      }
+    }
+
+    return response;
+  },
 
   async (error) => {
     const original = error.config;
@@ -80,7 +126,7 @@ API.interceptors.response.use(
     } finally {
       isRefreshing = false;
     }
-  }
+  },
 );
 
 export default API;

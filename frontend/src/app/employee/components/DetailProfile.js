@@ -5,6 +5,11 @@
 import { useEffect, useState } from "react";
 import API from "../../../utils/axiosInstance";
 
+// Backend base URL — hardcoded directly, NO env variable.
+// Deployment ke waqt yahin pe manually badalna hoga (e.g. prod
+// backend domain).
+const BACKEND_URL = "http://localhost:4000";
+
 export default function DetailProfiling({ userId }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -97,7 +102,7 @@ export default function DetailProfiling({ userId }) {
                   <img
                     src={
                       user.recentPhotograph?.url
-                        ? `http://localhost:4000${user.recentPhotograph.url}`
+                        ? `${BACKEND_URL}${user.recentPhotograph.url}`
                         : "/profile.png"
                     }
                     alt="profile"
@@ -160,7 +165,7 @@ export default function DetailProfiling({ userId }) {
                 value={
                   user.officerSignature?.url ? (
                     <img
-                      src={`http://localhost:4000${user.officerSignature.url}`}
+                      src={`${BACKEND_URL}${user.officerSignature.url}`}
                       alt="Officer Signature"
                       className="inline-block h-auto w-28 rounded-md border border-slate-200 bg-white p-2"
                     />
@@ -239,7 +244,7 @@ export default function DetailProfiling({ userId }) {
                 value={
                   user.medicalExamination?.reportDocument?.url ? (
                     <a
-                      href={`http://localhost:4000${user.medicalExamination.reportDocument.url}`}
+                      href={`${BACKEND_URL}${user.medicalExamination.reportDocument.url}`}
                       target="_blank"
                       rel="noreferrer"
                       className="inline-flex rounded-xl bg-blue-700 px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-blue-800"

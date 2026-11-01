@@ -1,6 +1,9 @@
 import API from "../../../utils/axiosInstance";
 import { useEffect, useState } from "react";
 
+// 🔧 Backend base URL (hardcoded, no env variable used)
+const BACKEND_URL = "http://localhost:4000";
+
 const InfoCard = ({ title, value }) => {
   return (
     <div className="min-w-0 rounded-md border border-slate-200 bg-slate-50 p-3 transition hover:border-blue-300 hover:bg-white">
@@ -389,6 +392,35 @@ export default function ReviewView({ employeeId }) {
                     </div>
                   </section>
                 </div>
+
+                {/* 👇 ADDED: Reviewing Officer Signature Section */}
+                <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+                  <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
+                    <h2 className="text-sm font-bold text-slate-900">
+                      Reviewing Officer Signature
+                    </h2>
+
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      Digitally uploaded signature of the reviewing officer.
+                    </p>
+                  </div>
+
+                  <div className="flex justify-center p-4 sm:p-6">
+                    <div className="flex min-h-44 w-full max-w-md items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4">
+                      {currentItem?.officerSignature?.url ? (
+                        <img
+                          src={`${BACKEND_URL}${currentItem.officerSignature.url}`}
+                          alt="Reviewing Officer Signature"
+                          className="max-h-36 max-w-full object-contain"
+                        />
+                      ) : (
+                        <p className="text-sm font-medium text-slate-500">
+                          Signature not available
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </section>
 
                 <section className="rounded-lg border border-slate-200 bg-white">
                   <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">

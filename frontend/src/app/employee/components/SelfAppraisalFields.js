@@ -4,10 +4,15 @@ import React from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { ArrowLeft } from "lucide-react";
 import { ShieldCheck, UserCheck } from "lucide-react";
+
+// 🔧 Backend base URL (hardcoded, no env variable used)
+const BACKEND_URL = "http://localhost:4000";
+
 const handleBack = () => {
     setActiveForm(null);
     setSelectedCategory(null);
   };
+
 export function useObjectUrl(file) {
   const [url, setUrl] = React.useState(null);
   const [type, setType] = React.useState(null);
@@ -21,25 +26,40 @@ export function useObjectUrl(file) {
       return;
     }
 
-    // Backend object
+    // Backend object -> { url: "/uploads/xxx.jpeg", public_id, originalName, mimeType, size }
     if (
       typeof file === "object" &&
       !(file instanceof File) &&
       !(file instanceof Blob)
     ) {
-      setUrl(file?.url || null);
+      const rawUrl = file?.url || null;
+
+      if (rawUrl) {
+        // Agar backend already full URL de raha hai to wahi use karo,
+        // warna hardcoded backend URL ke saath prefix laga do
+        const fullUrl = rawUrl.startsWith("http")
+          ? rawUrl
+          : `${BACKEND_URL}${rawUrl.startsWith("/") ? "" : "/"}${rawUrl}`;
+        setUrl(fullUrl);
+      } else {
+        setUrl(null);
+      }
+
       setType(file?.mimeType || null);
       return;
     }
 
-    // String URL
+    // String URL (relative path bhi ho sakta hai)
     if (typeof file === "string") {
-      setUrl(file);
+      const fullUrl = file.startsWith("http")
+        ? file
+        : `${BACKEND_URL}${file.startsWith("/") ? "" : "/"}${file}`;
+      setUrl(fullUrl);
       setType(null);
       return;
     }
 
-    // File / Blob
+    // File / Blob (newly selected file, not yet uploaded)
     if (file instanceof File || file instanceof Blob) {
       objectUrl = URL.createObjectURL(file);
       setUrl(objectUrl);

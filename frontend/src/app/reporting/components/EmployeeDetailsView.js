@@ -1,390 +1,68 @@
-// import { useEffect, useState } from "react";
-// import API from "../../../utils/axiosInstance";
-
-// /**
-//  * =========================
-//  * EMPLOYEE DETAILS HOOK (DEBUG VERSION)
-//  * =========================
-//  */
-// function useEmployeeDetails(employeeId) {
-//   const [employeeData, setEmployeeData] = useState(null);
-//   const [loading, setLoading] = useState(false); // better default
-//   const [error, setError] = useState("");
-
-//   useEffect(() => {
-//     if (!employeeId) {
-//       console.warn("❌ employeeId missing in hook");
-//       return;
-//     }
-
-//     const fetchEmployeeDetails = async () => {
-//       try {
-//         setLoading(true);
-//         setError("");
-
-//         // =========================
-//         // DEBUG LOG
-//         // =========================
-//         console.log("🚀 Fetching Employee Details for ID:", employeeId);
-
-//         const url = `/self-appraisal/viewer/${employeeId}`;
-//         console.log("📡 API CALL:", url);
-
-//         const response = await API.get(url);
-
-//         console.log("✅ API RESPONSE:", response?.data);
-
-//         // =========================
-//         // SAFE SET
-//         // =========================
-//         setEmployeeData(response.data.data);
-//       } catch (err) {
-//         console.error("❌ API ERROR FULL:", err);
-
-//         console.error("❌ RESPONSE ERROR:", err?.response?.data);
-
-//         setError(
-//           err?.response?.data?.message || "Failed to fetch employee details",
-//         );
-//       } finally {
-//         setLoading(false);
-//       }
-//     };
-
-//     fetchEmployeeDetails();
-//   }, [employeeId]);
-
-//   return { employeeData, loading, error };
-// }
-// export default function EmployeeDetailsViewing({ employeeId }) {
-//   const { employeeData, loading, error } = useEmployeeDetails(employeeId);
-
-//   // =========================
-//   // LOADING (UNCHANGED UI)
-//   // =========================
-//   if (loading) {
-//     return (
-//       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-//         <div className="bg-white rounded-3xl shadow-sm border border-gray-200 px-10 py-8">
-//           <div className="flex items-center gap-4">
-//             <div className="w-10 h-10 border-4 border-gray-200 border-t-black rounded-full animate-spin" />
-
-//             <div>
-//               <h2 className="font-semibold text-lg">Loading Employee Data</h2>
-
-//               <p className="text-sm text-gray-500">Please wait...</p>
-//             </div>
-//           </div>
-//         </div>
-//       </div>
-//     );
-//   }
-
-//   // =========================
-//   // ERROR (UNCHANGED UI)
-//   // =========================
-//   if (error) {
-//     return (
-//       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-//         <div className="bg-white border border-red-200 rounded-3xl p-10 max-w-lg w-full text-center shadow-sm">
-//           <div className="w-16 h-16 mx-auto rounded-full bg-red-100 flex items-center justify-center text-red-600 text-2xl mb-5">
-//             !
-//           </div>
-
-//           <h2 className="text-2xl font-bold text-gray-900">
-//             Something went wrong
-//           </h2>
-
-//           <p className="text-gray-500 mt-2">{error}</p>
-//         </div>
-//       </div>
-//     );
-//   }
-
-//   // =========================
-//   // NO DATA (UNCHANGED UI)
-//   // =========================
-//   if (!employeeData) {
-//     return (
-//       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-//         <div className="bg-white rounded-3xl border border-gray-200 p-10 shadow-sm text-center max-w-lg w-full">
-//           <h2 className="text-2xl font-bold text-gray-900">
-//             No Employee Data Found
-//           </h2>
-
-//           <p className="text-gray-500 mt-2">
-//             Employee details are not available.
-//           </p>
-//         </div>
-//       </div>
-//     );
-//   }
-//   return (
-//     <div className="min-h-screen bg-gray-50">
-//       <div className="max-w-7xl mx-auto px-4 md:px-6 py-8 space-y-8">
-//         {/* HEADER */}
-//         <div className="bg-gradient-to-r from-gray-900 to-black rounded-3xl p-8 shadow-sm relative overflow-hidden">
-//           <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full blur-3xl" />
-
-//           <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-//             <div>
-//               <p className="text-gray-300 text-sm uppercase tracking-widest">
-//                 Section II – Self-appraisal of the officer reported upon
-//               </p>
-
-//               <h1 className="text-white text-3xl font-bold mt-3">
-//                 Employee Appraisal Details
-//               </h1>
-
-//               <p className="text-gray-400 mt-2">
-//                 Detailed employee appraisal information and reporting
-//                 assessment.
-//               </p>
-//             </div>
-
-//             <div className="grid grid-cols-2 gap-4">
-//               <div className="bg-white/10 backdrop-blur rounded-2xl px-5 py-4">
-//                 <p className="text-xs text-gray-300">Financial Year</p>
-
-//                 <p className="text-white font-semibold mt-1">
-//                   {employeeData?.currentFinancialYear || "N/A"}
-//                 </p>
-//               </div>
-
-//               <div className="bg-white/10 backdrop-blur rounded-2xl px-5 py-4">
-//                 <p className="text-xs text-gray-300">Grand Total</p>
-
-//                 <p className="text-white font-semibold mt-1">
-//                   {employeeData?.calculatedGrandTotal || 0}
-//                 </p>
-//               </div>
-//             </div>
-//           </div>
-//         </div>
-
-//         {/* VALIDATION SUMMARY */}
-//         <div className="bg-white rounded-3xl border border-gray-200 shadow-sm p-6">
-//           <h2 className="text-xl font-bold text-gray-900 mb-6">
-//             Validation Summary
-//           </h2>
-
-//           <div className="grid md:grid-cols-2 gap-5">
-//             <div
-//               className={`rounded-2xl p-5 border ${
-//                 employeeData?.taskWeightageMatched
-//                   ? "bg-green-50 border-green-200"
-//                   : "bg-red-50 border-red-200"
-//               }`}
-//             >
-//               <h3 className="font-semibold">Task Weightage Validation</h3>
-
-//               <p className="mt-2">
-//                 {employeeData?.taskWeightageMatched ? "Matched" : "Mismatch"}
-//               </p>
-//             </div>
-
-//             <div
-//               className={`rounded-2xl p-5 border ${
-//                 employeeData?.grandTotalMatched
-//                   ? "bg-green-50 border-green-200"
-//                   : "bg-red-50 border-red-200"
-//               }`}
-//             >
-//               <h3 className="font-semibold">Grand Total Validation</h3>
-
-//               <p className="mt-2">
-//                 {employeeData?.grandTotalMatched ? "Matched" : "Mismatch"}
-//               </p>
-//             </div>
-//           </div>
-//         </div>
-
-//         {/* DETAILS */}
-//         <div className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
-//           <div className="border-b border-gray-100 px-8 py-6">
-//             <h2 className="text-2xl font-bold text-gray-900">
-//               Employee Appraisal Information
-//             </h2>
-//           </div>
-
-//           <div className="p-6 md:p-8">
-//             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-//               {[
-//                 {
-//                   label: "Responsibilities",
-//                   value: employeeData?.responsibilities,
-//                 },
-//                 {
-//                   label: "MOU Weightage",
-//                   value: employeeData?.mouWeightage,
-//                 },
-//                 {
-//                   label: "MOU Deliverables",
-//                   value: employeeData?.mouDeliverables,
-//                 },
-//                 {
-//                   label: "MOU Achievement",
-//                   value: employeeData?.mouAchievement,
-//                 },
-//                 {
-//                   label: "Declared Task Weightage",
-//                   value: employeeData?.totalTaskWeightage,
-//                 },
-//                 {
-//                   label: "Calculated Task Weightage",
-//                   value: employeeData?.calculatedTotalTaskWeightage,
-//                 },
-//                 {
-//                   label: "Calculated Grand Total",
-//                   value: employeeData?.calculatedGrandTotal,
-//                 },
-//                 {
-//                   label: "Exceptional Contribution",
-//                   value: employeeData?.exceptionalContribution,
-//                 },
-//                 {
-//                   label: "Constraints",
-//                   value: employeeData?.constraints,
-//                 },
-//                 {
-//                   label: "Current Assignment Training",
-//                   value: employeeData?.currentAssignmentTraining,
-//                 },
-//                 {
-//                   label: "Future Career Training",
-//                   value: employeeData?.futureCareerTraining,
-//                 },
-//                 {
-//                   label: "Immovable Property Return Filed",
-//                   value: employeeData?.immovablePropertyReturnFiled
-//                     ? "Yes"
-//                     : "No",
-//                 },
-//                 {
-//                   label: "Immovable Property Return Date",
-//                   value: employeeData?.immovablePropertyReturnDate
-//                     ? new Date(
-//                         employeeData.immovablePropertyReturnDate,
-//                       ).toLocaleDateString("en-IN")
-//                     : "N/A",
-//                 },
-//                 {
-//                   label: "Medical Checkup Done",
-//                   value: employeeData?.medicalCheckupDone ? "Yes" : "No",
-//                 },
-//                 {
-//                   label: "Annual Work Plan Set",
-//                   value: employeeData?.annualWorkPlanSetForOfficers
-//                     ? "Yes"
-//                     : "No",
-//                 },
-//                 {
-//                   label: "Created At",
-//                   value: employeeData?.createdAt
-//                     ? new Date(employeeData.createdAt).toLocaleString("en-IN")
-//                     : "N/A",
-//                 },
-//                 {
-//                   label: "Updated At",
-//                   value: employeeData?.updatedAt
-//                     ? new Date(employeeData.updatedAt).toLocaleString("en-IN")
-//                     : "N/A",
-//                 },
-//               ].map((item, index) => (
-//                 <div
-//                   key={index}
-//                   className="rounded-2xl border border-gray-200 bg-gray-50 p-5 hover:bg-white hover:shadow-md transition-all"
-//                 >
-//                   <p className="text-sm text-gray-500">{item.label}</p>
-
-//                   <h3 className="text-gray-900 font-semibold mt-2 break-words">
-//                     {item.value || "N/A"}
-//                   </h3>
-//                 </div>
-//               ))}
-//             </div>
-//           </div>
-//         </div>
-// <div className="flex flex-col items-center rounded-2xl border border-gray-200 bg-white p-6 shadow-md">
-//   <label className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-600">
-//     Employee Signature
-//   </label>
-
-//   {employeeData?.officerSignature?.url ? (
-//     <img
-//       src={`http://localhost:4000${employeeData.officerSignature.url}`}
-//       alt="Reporting Officer Signature"
-//       className="h-40 w-auto object-contain"
-//     />
-//   ) : (
-//     <p className="text-sm text-gray-400">No Signature Available</p>
-//   )}
-// </div>
-//         {/* TASKS */}
-//         <div className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
-//           <div className="border-b border-gray-100 px-8 py-6">
-//             <h2 className="text-2xl font-bold text-gray-900">Tasks Details</h2>
-
-//             <p className="text-gray-500 mt-1">
-//               Assigned tasks and achievements
-//             </p>
-//           </div>
-
-//           <div className="p-6 md:p-8">
-//             {employeeData?.tasks?.length > 0 ? (
-//               <div className="overflow-x-auto">
-//                 <table className="w-full min-w-[900px]">
-//                   <thead>
-//                     <tr className="bg-gray-100">
-//                       <th className="text-left p-4">#</th>
-
-//                       <th className="text-left p-4">Task Name</th>
-
-//                       <th className="text-left p-4">Weightage</th>
-
-//                       <th className="text-left p-4">Deliverables</th>
-
-//                       <th className="text-left p-4">Achievement</th>
-//                     </tr>
-//                   </thead>
-
-//                   <tbody>
-//                     {employeeData.tasks.map((task, index) => (
-//                       <tr
-//                         key={task?._id?.$oid || task?._id || index}
-//                         className="border-b"
-//                       >
-//                         <td className="p-4">{index + 1}</td>
-
-//                         <td className="p-4 font-medium">{task?.taskName}</td>
-
-//                         <td className="p-4">{task?.weightage}</td>
-
-//                         <td className="p-4">{task?.deliverables}</td>
-
-//                         <td className="p-4">{task?.achievement}</td>
-//                       </tr>
-//                     ))}
-//                   </tbody>
-//                 </table>
-//               </div>
-//             ) : (
-//               <div className="text-center py-10 text-gray-500">
-//                 No Tasks Available
-//               </div>
-//             )}
-//           </div>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
-
-
 "use client";
 
 import { useEffect, useState } from "react";
 import API from "../../../utils/axiosInstance";
+
+/**
+ * =========================
+ * MONGO EJSON -> PLAIN VALUES
+ * =========================
+ * { $numberInt: "5" }  -> 5
+ * { $oid: "abc" }      -> "abc"
+ * { $date: ... }       -> ISO string
+ * Recursively cleans objects and arrays.
+ */
+const unwrap = (v) => {
+  if (Array.isArray(v)) return v.map(unwrap);
+
+  if (v && typeof v === "object") {
+    if ("$numberInt" in v) return Number(v.$numberInt);
+    if ("$numberLong" in v) return Number(v.$numberLong);
+    if ("$numberDouble" in v) return Number(v.$numberDouble);
+    if ("$numberDecimal" in v) return Number(v.$numberDecimal);
+    if ("$oid" in v) return v.$oid;
+
+    if ("$date" in v) {
+      const d = unwrap(v.$date);
+      const parsed = new Date(d);
+      return isNaN(parsed.getTime()) ? null : parsed.toISOString();
+    }
+
+    return Object.fromEntries(
+      Object.entries(v).map(([key, val]) => [key, unwrap(val)]),
+    );
+  }
+
+  return v;
+};
+
+/**
+ * Safe text for JSX: never lets a raw object reach React
+ * (this is what caused React error #31).
+ */
+const toText = (v, fallback = "N/A") => {
+  if (v === null || v === undefined || v === "") return fallback;
+  if (typeof v === "object") {
+    try {
+      return JSON.stringify(v);
+    } catch {
+      return fallback;
+    }
+  }
+  return String(v);
+};
+
+const formatDateOnly = (value) => {
+  if (!value) return "N/A";
+  const d = new Date(value);
+  return isNaN(d.getTime()) ? "N/A" : d.toLocaleDateString("en-IN");
+};
+
+const formatDateTime = (value) => {
+  if (!value) return "N/A";
+  const d = new Date(value);
+  return isNaN(d.getTime()) ? "N/A" : d.toLocaleString("en-IN");
+};
 
 /**
  * =========================
@@ -420,9 +98,9 @@ function useEmployeeDetails(employeeId) {
         console.log("✅ API RESPONSE:", response?.data);
 
         // =========================
-        // SAFE SET
+        // SAFE SET (EJSON cleaned)
         // =========================
-        setEmployeeData(response.data.data);
+        setEmployeeData(unwrap(response?.data?.data) || null);
       } catch (err) {
         console.error("❌ API ERROR FULL:", err);
         console.error("❌ RESPONSE ERROR:", err?.response?.data);
@@ -586,11 +264,7 @@ export default function EmployeeDetailsViewing({ employeeId }) {
     },
     {
       label: "Immovable Property Return Date",
-      value: employeeData?.immovablePropertyReturnDate
-        ? new Date(
-            employeeData.immovablePropertyReturnDate,
-          ).toLocaleDateString("en-IN")
-        : "N/A",
+      value: formatDateOnly(employeeData?.immovablePropertyReturnDate),
     },
     {
       label: "Medical Checkup Done",
@@ -602,17 +276,15 @@ export default function EmployeeDetailsViewing({ employeeId }) {
     },
     {
       label: "Created At",
-      value: employeeData?.createdAt
-        ? new Date(employeeData.createdAt).toLocaleString("en-IN")
-        : "N/A",
+      value: formatDateTime(employeeData?.createdAt),
     },
     {
       label: "Updated At",
-      value: employeeData?.updatedAt
-        ? new Date(employeeData.updatedAt).toLocaleString("en-IN")
-        : "N/A",
+      value: formatDateTime(employeeData?.updatedAt),
     },
   ];
+
+  const tasks = Array.isArray(employeeData?.tasks) ? employeeData.tasks : [];
 
   return (
     <main className="min-h-screen bg-slate-100">
@@ -655,18 +327,15 @@ export default function EmployeeDetailsViewing({ employeeId }) {
           <div className="grid grid-cols-1 gap-px bg-white/15 sm:grid-cols-3">
             <HeaderMetric
               label="Financial Year"
-              value={employeeData?.currentFinancialYear || "N/A"}
+              value={toText(employeeData?.currentFinancialYear)}
             />
 
             <HeaderMetric
               label="Grand Total"
-              value={employeeData?.calculatedGrandTotal || 0}
+              value={toText(employeeData?.calculatedGrandTotal, "0")}
             />
 
-            <HeaderMetric
-              label="Assigned Tasks"
-              value={employeeData?.tasks?.length || 0}
-            />
+            <HeaderMetric label="Assigned Tasks" value={tasks.length} />
           </div>
         </section>
 
@@ -703,11 +372,7 @@ export default function EmployeeDetailsViewing({ employeeId }) {
 
           <div className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2 sm:p-6 xl:grid-cols-3">
             {details.map((item, index) => (
-              <DetailCard
-                key={index}
-                label={item.label}
-                value={item.value}
-              />
+              <DetailCard key={index} label={item.label} value={item.value} />
             ))}
           </div>
         </section>
@@ -762,11 +427,11 @@ export default function EmployeeDetailsViewing({ employeeId }) {
             eyebrow="Assigned Work"
             title="Task Details"
             description="Assigned tasks, weightage, deliverables, and recorded achievements."
-            badge={`${employeeData?.tasks?.length || 0} Tasks`}
+            badge={`${tasks.length} Tasks`}
           />
 
           <div className="p-5 sm:p-6">
-            {employeeData?.tasks?.length > 0 ? (
+            {tasks.length > 0 ? (
               <div className="overflow-hidden rounded-xl border border-slate-300">
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[900px] border-collapse text-sm">
@@ -795,9 +460,9 @@ export default function EmployeeDetailsViewing({ employeeId }) {
                     </thead>
 
                     <tbody>
-                      {employeeData.tasks.map((task, index) => (
+                      {tasks.map((task, index) => (
                         <tr
-                          key={task?._id?.$oid || task?._id || index}
+                          key={task?._id || index}
                           className={`transition hover:bg-blue-50 ${
                             index % 2 === 0 ? "bg-white" : "bg-slate-50"
                           }`}
@@ -809,21 +474,21 @@ export default function EmployeeDetailsViewing({ employeeId }) {
                           </td>
 
                           <td className="border-r border-t border-slate-300 px-4 py-4 font-semibold text-slate-900">
-                            {task?.taskName || "N/A"}
+                            {toText(task?.taskName)}
                           </td>
 
                           <td className="border-r border-t border-slate-300 px-4 py-4 text-center">
                             <span className="inline-flex min-w-16 justify-center rounded-md border border-blue-200 bg-blue-50 px-3 py-1.5 font-bold text-[#0b4a7f]">
-                              {task?.weightage ?? "N/A"}
+                              {toText(task?.weightage)}
                             </span>
                           </td>
 
                           <td className="border-r border-t border-slate-300 px-4 py-4 leading-6 text-slate-700">
-                            {task?.deliverables || "N/A"}
+                            {toText(task?.deliverables)}
                           </td>
 
                           <td className="border-t border-slate-300 px-4 py-4 leading-6 text-slate-700">
-                            {task?.achievement || "N/A"}
+                            {toText(task?.achievement)}
                           </td>
                         </tr>
                       ))}
@@ -874,7 +539,7 @@ function HeaderMetric({ label, value }) {
       </p>
 
       <p className="mt-1 text-xl font-extrabold text-white">
-        {value}
+        {toText(value, "0")}
       </p>
     </div>
   );
@@ -889,9 +554,7 @@ function SectionHeader({ eyebrow, title, description, badge }) {
             {eyebrow}
           </p>
 
-          <h2 className="mt-1 text-lg font-bold text-slate-900">
-            {title}
-          </h2>
+          <h2 className="mt-1 text-lg font-bold text-slate-900">{title}</h2>
 
           <p className="mt-1 text-sm leading-5 text-slate-500">
             {description}
@@ -927,25 +590,19 @@ function ValidationCard({ title, matched, description }) {
             Validation Check
           </p>
 
-          <h3 className="mt-1 text-sm font-bold text-slate-900">
-            {title}
-          </h3>
+          <h3 className="mt-1 text-sm font-bold text-slate-900">{title}</h3>
         </div>
 
         <span
           className={`rounded-full px-3 py-1 text-[10px] font-extrabold uppercase tracking-wide ${
-            matched
-              ? "bg-emerald-600 text-white"
-              : "bg-red-600 text-white"
+            matched ? "bg-emerald-600 text-white" : "bg-red-600 text-white"
           }`}
         >
           {matched ? "Matched" : "Mismatch"}
         </span>
       </div>
 
-      <p className="mt-3 text-xs leading-5 text-slate-600">
-        {description}
-      </p>
+      <p className="mt-3 text-xs leading-5 text-slate-600">{description}</p>
     </div>
   );
 }
@@ -958,7 +615,7 @@ function DetailCard({ label, value }) {
       </p>
 
       <p className="mt-2 break-words text-sm font-semibold leading-6 text-slate-900">
-        {value || "N/A"}
+        {toText(value)}
       </p>
     </article>
   );
